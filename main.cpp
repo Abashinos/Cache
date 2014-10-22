@@ -9,10 +9,12 @@
 #define BUFFER_END_VALUE 10*1024*1024
 #define BUFFER_MULTIPLIER 1.1
 #define APPROXIMATION_NUM 20
-#define CYCLES_NUM 1000
-#define COLUMNS_WIDTH 12
+#define COLUMNS_WIDTH 10
 #define PRECISION 4
-#define GRAPH
+#define FOUR_TIMES(a) a a a a
+#define CYCLES_NUM 32*32
+#define ELEMENTS_IN_CYCLE 64
+//#define GRAPH
 
 using namespace std;
 using namespace std::chrono;
@@ -20,7 +22,7 @@ using namespace std::chrono;
 struct elem
 {
     elem(): next(NULL) {};
-    long see[15];
+    long payload[15];
 
     elem *next;
 };
@@ -51,55 +53,24 @@ void fill_elems (vector<elem> &elems, vector<size_t>& indices)
     elems[*from_index].next = &elems[*indices.begin()];
 }
 
-double seqAccess (vector<elem> &elems)
+double getAccessTime(vector<elem> &elems)
 {
     elem* el = &elems[0];
-    long t_start = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
-    for (int i = 0; i < CYCLES_NUM; ++i)
-    {
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
-        el = el->next;
+    long t_start = duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
+    for (size_t i = 0; i < CYCLES_NUM; ++i) {
+        FOUR_TIMES(FOUR_TIMES(FOUR_TIMES(el = el->next;)))
     }
-    long t_stop = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
-    double time = ((double)(t_stop-t_start))/(CYCLES_NUM*32);
+    long t_stop = duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
+    double time = ((double)(t_stop-t_start))/(CYCLES_NUM*ELEMENTS_IN_CYCLE);
     return time;
 }
 
 double getAverageAccessTime (vector<elem> &elems) {
     double avTime = 0.0;
     for (int i = 0; i < APPROXIMATION_NUM; ++i) {
-        avTime += seqAccess(elems);
+        avTime += getAccessTime(elems);
     }
-    return avTime /= APPROXIMATION_NUM;
+    return avTime / APPROXIMATION_NUM;
 }
 
 int main(int argc, char** argv)
@@ -110,7 +81,7 @@ int main(int argc, char** argv)
     for (unsigned long buf = BUFFER_START_VALUE; buf < BUFFER_END_VALUE; buf*= BUFFER_MULTIPLIER) {
         unsigned long number = buf / sizeof(elem);
 #ifndef GRAPH
-        cout << buf;
+        cout << setw(COLUMNS_WIDTH) << buf;
 #endif
         vector<elem> elems(buf);
         vector<size_t> indices;
